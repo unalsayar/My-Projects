@@ -6,13 +6,11 @@ Description: |
   EC2 Instance with custom security group which allows http connections
    on port 80 and ssh port 22 from anywhere. Kittens Carousel Static Website
   is downloaded from my Public Github repository, then deployed on Apache Web Server.
-  
- 
 Resources:
-  WebServerSecurityGroup:
+  WebServerSecGrup:
     Type: AWS::EC2::SecurityGroup
     Properties:
-      GroupDescription: Enable HTTP for Apache Web Server and SSH for secure connection.
+      GroupDescription: Enable HTTP for Apache Web Server and SSH for secure connection. # Required
       SecurityGroupIngress:
         - IpProtocol: tcp
           FromPort: 80
@@ -22,25 +20,25 @@ Resources:
           FromPort: 22
           ToPort: 22
           CidrIp: 0.0.0.0/0
-
   WebServerHost:
     Type: AWS::EC2::Instance
     Properties:
+      AvailabilityZone: us-east-1a
       ImageId: ami-02e136e904f3da870
       InstanceType: t2.micro
       KeyName: AWS_Keypair
-      SecurityGroupIds:
-        - !Ref WebServerSecurityGroup
+      SecurityGroups:
+        - !Ref WebServerSecGrup
       Tags:
         - Key: Name
-          Value: !Sub Web Server of ${AWS::Stackname} Stack
-      UserData: 
+          Value: !Sub Web Server of ${AWS::StackName} Stack
+      UserData:
         Fn::Base64:
           !Sub |
-            #! /bin/bash
+            #!/bin/bash
             yum update -y
             yum install httpd -y
-            FOLDER='https://raw.githubusercontent.com/unalsayar/My-Projects/main/aws/projects/Project-101-kittens-carousel-static-website-ec2/static-web'
+            FOLDER="https://raw.githubusercontent.com/unalsayar/My-Projects/main/aws/projects/Project-101-kittens-carousel-static-website-ec2/static-web"
             cd /var/www/html
             wget $FOLDER/index.html
             wget $FOLDER/cat0.jpg
@@ -49,10 +47,8 @@ Resources:
             wget $FOLDER/cat3.png
             systemctl start httpd
             systemctl enable httpd
-
 Outputs:
   WebsiteURL:
     Value: !Sub
       - http://${PublicAddress}
-      - PublicAddress: WebServerHost.PublicDnsName
-    Description: Kitten Carousel Application URL 
+      - PublicAddress: !GetAtt WebServerHost.PublicDnsName
